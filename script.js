@@ -1,4 +1,4 @@
-// script.js - 完全版（GAS連携・管理者機能・移動時間消費・ステルスピン・保留ログ記録）
+// script.js - 保留ログ記録修正版・完全統合
 
 // ★ここに発行されたGASのWebアプリURLを設定
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyXuTtcIgO5lDPDs_PU24VTb3L29cL-2uB-oeruNDqrYclDerB_9TA9p23-zX1csDz1OQ/exec";
@@ -445,7 +445,7 @@ function renderTaskList(roomIndex) {
         content.appendChild(btn);
     });
     
-    // ★保留ボタン（ログ記録機能追加）
+    // ★保留ボタン（ログ記録機能修正済み）
     const holdBtn = document.createElement("button");
     holdBtn.className = "choice-btn"; holdBtn.style.backgroundColor = "#555"; holdBtn.style.textAlign = "center"; holdBtn.style.marginTop = "15px";
     holdBtn.textContent = "一端保留にする（閉じる）";
@@ -458,7 +458,7 @@ function renderTaskList(roomIndex) {
         actionLogs.push({ 
             time: elapsedTime, 
             realTime: timeStr, 
-            location: roomData[roomIndex].name, 
+            location: room.name, 
             event: "エリア選択画面", 
             choice: "一端保留にする（閉じる）", 
             result: "対応を後回しにしました", 
