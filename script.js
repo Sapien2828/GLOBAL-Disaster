@@ -1,4 +1,4 @@
-// script.js - 完全版（GAS連携・管理者機能・移動時間消費・ステルスピン）
+// script.js - 完全版（GAS連携・管理者機能・移動時間消費・ステルスピン・保留ログ記録）
 
 // ★ここに発行されたGASのWebアプリURLを設定
 const GAS_URL = "https://script.google.com/macros/s/AKfycbyXuTtcIgO5lDPDs_PU24VTb3L29cL-2uB-oeruNDqrYclDerB_9TA9p23-zX1csDz1OQ/exec";
@@ -167,7 +167,6 @@ canvas.addEventListener('mousedown', (e) => {
         let room = roomData[i];
         if (!room.discovered) continue; 
         
-        // 完了済みはクリック不可（見えない）
         const allDone = room.tasks.every(t => t.status === 'completed');
         if (allDone) continue; 
 
@@ -291,7 +290,6 @@ function draw() {
     }
     ctx.font = "24px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "bottom";
     
-    // ★完了済みはピンを描画しない (非表示)
     roomData.forEach(r => {
         if (r.discovered) {
             const allDone = r.tasks.every(t => t.status === 'completed');
@@ -325,7 +323,6 @@ function updateTimeDisplay() {
     if (elapsedTime >= GAME_LIMIT_MINUTES) finishGame();
 }
 
-// 終了処理
 window.finishGame = function() {
     if (isGameOver) return;
     isGameOver = true; player.moving = false;
@@ -340,7 +337,6 @@ window.finishGame = function() {
     });
     resultScreen.style.display = "flex";
 
-    // ★LocalStorageとGASの両方に保存
     saveLogsToLocalStorage();
     if (currentMode === 'training') saveLogsToGoogleSheets();
 };
@@ -448,10 +444,30 @@ function renderTaskList(roomIndex) {
         if (task.status !== 'completed') btn.onclick = () => showChoices(roomIndex, taskIndex);
         content.appendChild(btn);
     });
+    
+    // ★保留ボタン（ログ記録機能追加）
     const holdBtn = document.createElement("button");
     holdBtn.className = "choice-btn"; holdBtn.style.backgroundColor = "#555"; holdBtn.style.textAlign = "center"; holdBtn.style.marginTop = "15px";
     holdBtn.textContent = "一端保留にする（閉じる）";
-    holdBtn.onclick = () => { document.getElementById('event-popup').style.display = 'none'; };
+    
+    holdBtn.onclick = () => { 
+        // ログに記録
+        const now = new Date();
+        const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+        
+        actionLogs.push({ 
+            time: elapsedTime, 
+            realTime: timeStr, 
+            location: roomData[roomIndex].name, 
+            event: "エリア選択画面", 
+            choice: "一端保留にする（閉じる）", 
+            result: "対応を後回しにしました", 
+            cost: 0 
+        });
+
+        document.getElementById('event-popup').style.display = 'none'; 
+    };
+    
     content.appendChild(holdBtn);
 }
 
@@ -469,7 +485,8 @@ function showChoices(roomIndex, taskIndex) {
             const now = new Date();
             const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
             actionLogs.push({ time: elapsedTime, realTime: timeStr, location: roomData[roomIndex].name, event: task.title, choice: choice.text, result: choice.result, cost: choice.time });
-            elapsedTime += choice.time; updateTimeDisplay();
+            elapsedTime += choice.time;
+            updateTimeDisplay();
             document.getElementById('event-desc').textContent = choice.result;
             if (choice.type === 'solve') task.status = 'completed';
             content.innerHTML = "";
